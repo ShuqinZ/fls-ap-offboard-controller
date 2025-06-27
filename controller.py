@@ -205,7 +205,7 @@ class Controller:
             return False
 
     # Take off to target altitude (in meters)
-    def takeoff(self):
+    def takeoff(self, retry=3):
         self.master.mav.command_long_send(
             self.master.target_system, self.master.target_component,
             mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
@@ -215,6 +215,8 @@ class Controller:
         )
         self.logger.info(f"Takeoff command sent to {self.takeoff_altitude} meters")
         ack = self.wait_for_command_ack(command=mavutil.mavlink.MAV_CMD_NAV_TAKEOFF)
+        if ack is False and retry:
+            self.takeoff(retry - 1)
 
     # Land the drone
     def land(self):
