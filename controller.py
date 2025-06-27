@@ -216,6 +216,7 @@ class Controller:
         self.logger.info(f"Takeoff command sent to {self.takeoff_altitude} meters")
         ack = self.wait_for_command_ack(command=mavutil.mavlink.MAV_CMD_NAV_TAKEOFF)
         if ack is False and retry:
+            time.sleep(1)
             self.takeoff(retry - 1)
 
     # Land the drone
@@ -1002,7 +1003,7 @@ class Controller:
     def start_flight(self):
         battery_thread = Thread(target=self.watch_battery, daemon=True)
 
-        time.sleep(3)
+        time.sleep(1)
         c.takeoff()
         time.sleep(2)
 
