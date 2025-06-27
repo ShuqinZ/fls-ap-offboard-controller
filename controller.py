@@ -1144,7 +1144,7 @@ if __name__ == "__main__":
         time.sleep(2)
         localize_thread.start()
 
-    if not c.set_mode('GUIDED_NOGPS'):
+    if not c.set_mode('GUIDED'):
         pass
         # exit()
 
