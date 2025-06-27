@@ -142,6 +142,7 @@ class Controller:
                     return True
                 else:
                     self.logger.error(f"Command {command} failed with result: {msg.result}")
+                    self.logger.error(msg)
                     return False
 
         self.logger.error(f"No ACK received for command {command}")
