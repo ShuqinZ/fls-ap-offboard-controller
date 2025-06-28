@@ -105,7 +105,7 @@ class ViconWrapper(threading.Thread):
                 self.logger.info("Disconnected from Vicon server.")
 
 
-class VirtualViconWrapper():
+class VirtualViconWrapper(threading.Thread):
     def __init__(self, callback=None, log_level=logging.INFO):
         super().__init__()
         self.running = False
