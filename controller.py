@@ -1041,7 +1041,7 @@ class Controller:
             self.running_position_estimation = False
             localize_thread.join()
 
-        if args.vicon or args.save_vicon:
+        if args.vicon or args.virtual_vicon or args.save_vicon:
             vicon_thread.stop()
 
 
@@ -1056,6 +1056,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("--sim", action="store_true", help="connect to simulator")
     arg_parser.add_argument("--localize", action="store_true", help="localize using camera")
     arg_parser.add_argument("--vicon", action="store_true", help="localize using Vicon and save tracking data")
+    arg_parser.add_argument("--virtual-vicon", action="store_true", help="localize using synthetic Vicon data and save tracking data")
     arg_parser.add_argument("--save-vicon", action="store_true", help="save Vicon tracking data only")
     arg_parser.add_argument("--save-camera", action="store_true",
                             help="save camera at 1/10 of original fps, works with --localize")
@@ -1108,6 +1109,12 @@ if __name__ == "__main__":
         from vicon import ViconWrapper
 
         vicon_thread = ViconWrapper(callback=c.send_vicon_position, log_level=log_level)
+        vicon_thread.start()
+
+    if args.virtual_vicon:
+        from vicon import VirtualViconWrapper
+
+        vicon_thread = VirtualViconWrapper(callback=c.send_vicon_position, log_level=log_level)
         vicon_thread.start()
 
     if args.save_vicon:

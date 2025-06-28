@@ -103,3 +103,42 @@ class ViconWrapper(threading.Thread):
             if client.is_connected():
                 client.disconnect()
                 self.logger.info("Disconnected from Vicon server.")
+
+
+class VirtualViconWrapper():
+    def __init__(self, callback=None, log_level=logging.INFO):
+        super().__init__()
+        self.running = False
+        self.logger = LoggerFactory("Vicon", level=log_level).get_logger()
+        self.callback = callback
+        self.position_log = []
+
+    def stop(self):
+        self.running = False
+        self.join()
+
+    def run(self):
+        self.running = True
+
+        self.logger.info("Generating Synthetic Vicon data")
+
+        while self.running:
+
+            pos_x, pos_y, pos_z = 0, 0, 10
+            self.position_log.append({
+                "frame_id": frame_num,
+                "tvec": [pos_x, pos_y, pos_z],
+                "time": time.time() * 1000
+            })
+            if callable(self.callback):
+                self.callback(pos_x, pos_y, pos_z)
+            self.logger.debug(
+                f"    Position (mm): X={pos_x:.2f}, Y={pos_y:.2f}, Z={pos_z:.2f}")
+        else:
+            self.logger.warning(f"    Position (mm): Occluded or no data")
+            now = datetime.now()
+            formatted = now.strftime("%H_%M_%S_%m_%d_%Y")
+            file_path = os.path.join("logs", f"vicon_{formatted}.json")
+            with open(file_path, "w") as f:
+                json.dump({"frames": self.position_log}, f)
+            self.logger.info(f"Vicon log saved in {file_path}")
