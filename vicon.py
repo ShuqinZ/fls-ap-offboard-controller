@@ -121,9 +121,9 @@ class VirtualViconWrapper(threading.Thread):
         self.running = True
 
         self.logger.info("Generating Synthetic Vicon data")
-
+        frame_num = 0
         while self.running:
-
+            frame_num += 1
             pos_x, pos_y, pos_z = 0, 0, 10
             self.position_log.append({
                 "frame_id": frame_num,
