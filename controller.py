@@ -114,11 +114,11 @@ class Controller:
         self.logger.info("Waiting for system initialization...")
         time.sleep(5)
 
-        # msg = self.master.recv_match(type='ATTITUDE', blocking=True)
-        # if msg:
-        #     yaw_rad = msg.yaw
-        #     self.logger.info(f"initial yaw in radians: {yaw_rad}")
-        #     self.initial_yaw = yaw_rad
+        msg = self.master.recv_match(type='ATTITUDE', blocking=True)
+        if msg:
+            yaw_rad = msg.yaw
+            self.logger.info(f"initial yaw in radians: {yaw_rad}")
+            self.initial_yaw = yaw_rad
 
     def reboot(self):
         self.master.mav.command_long_send(
