@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import struct
 import subprocess
@@ -73,7 +74,7 @@ class Controller:
         self.takeoff_altitude = takeoff_altitude
         self.land_altitude = land_altitude
         self.start_time = time.time()
-        self.battery_low = False
+        self.failsafe = False
         self.running_position_estimation = False
         self.running_battery_watcher = False
         self.sim = sim
@@ -345,11 +346,14 @@ class Controller:
             self.send_motor_test(i + 1, throttle_type=0, throttle_value=10, duration=1)
             time.sleep(0.25)
 
-    def watch_battery(self):
+    def watch_battery(self, independent=False):
         start = time.perf_counter()
 
-        while self.running_battery_watcher:
+        while self.running_battery_watcher or independent:
             elapsed = time.perf_counter() - start
+
+            if independent and elapsed > self.flight_duration:
+                break
 
             msg = self.master.recv_match(type=['BATTERY_STATUS'], blocking=True, timeout=1)
             voltage = current = 'N/A'
@@ -361,7 +365,7 @@ class Controller:
                     current = msg.current_battery / 100.0 if msg.current_battery != -1 else 'N/A'
 
                     if isinstance(voltage, float) and voltage < self.voltage_threshold:
-                        self.battery_low = True
+                        self.failsafe = True
                         self.logger.warning(f"Failsafe triggered due to low battery ({voltage} V)")
                         break
 
@@ -539,6 +543,58 @@ class Controller:
         self.wait_for_command_ack(ack_type="MISSION_ACK")
 
     def send_trajectory_from_file(self, file_path):
+        with open(file_path, "r") as f:
+            trajectory = json.load(f)
+
+        fps = trajectory["fps"]
+        start_position = trajectory["start_position"]
+        segments = trajectory["segments"]
+
+        #  go to start position
+        x0, y0, z0 = 0, 0, -self.takeoff_altitude
+        y, x, z = start_position
+        z = -self.takeoff_altitude - z
+        dx, dy, dz = x - x0, y - y0, z -z0
+
+        # move to start point in 3 seconds
+        for i in range(1, 31):
+            self.send_position_target(x0 + i * dx/30, y0 + i * dy/30, z0 + i * dz/30)
+            time.sleep(1/10)
+
+        # stay at start point for 1 second
+        for i in range(10):
+            self.send_position_target(x, y, z)
+            time.sleep(1/10)
+
+        for i in range(3):
+            for segment in segments:
+                positions = segment["position"]
+                velocities = segment["velocity"]
+                state = segment["state"]
+                if state == "RETURN" and i == 2:
+                    break
+                if state == "LIT":
+                    led.turn_on()
+                else:
+                    led.clear()
+
+                for p, v in zip(positions, velocities):
+                    if self.failsafe:
+                        return
+                    y, x, z = p
+                    vy, vx, vz = v
+                    # self.send_position_target(x, y, -self.takeoff_altitude-z)
+                    self.send_position_velocity_target(x, y, -self.takeoff_altitude-z, vx, vy, -vz)
+                    time.sleep(1/fps)
+
+        led.clear()
+
+        #  go to start position
+        for _ in range(10):
+            self.send_position_target(0, 0, -self.takeoff_altitude)
+            time.sleep(1 / 10)
+
+    def send_trajectory_from_file_(self, file_path):
         """Read and send a trajectory."""
         import pandas as pd
         df = pd.read_csv(file_path)
@@ -575,7 +631,7 @@ class Controller:
         # Send each point in the trajectory
         for j in range(3):
             for i in range(point_count):
-                if self.battery_low:
+                if self.failsafe:
                     return
 
                 _x = 0
@@ -749,13 +805,12 @@ class Controller:
         return path
 
     def test_trajectory(self, x=0, y=0, z=0):
-        self.logger.info("Sending")
         points = [(x, y, -self.takeoff_altitude - z)]
 
         for j in range(1):
             for point in points:
                 for i in range(int(self.flight_duration * 10)):
-                    if self.battery_low:
+                    if self.failsafe:
                         return
                     self.send_position_target(point[0], point[1], point[2])
                     time.sleep(1 / 10)
@@ -862,7 +917,7 @@ class Controller:
         for j in range(1):
             for point in points:
                 for i in range(10):
-                    if self.battery_low:
+                    if self.failsafe:
                         return
                     self.send_position_target(point[2], point[0] - 0.3, -1 - (point[1] - 1.7) / 3)
                     time.sleep(1 / 10)
@@ -878,7 +933,7 @@ class Controller:
 
         start_time = time.time()
 
-        while not self.battery_low:
+        while not self.failsafe:
             t = time.time() - start_time
             if 0 < self.flight_duration <= t:
                 break
@@ -916,11 +971,16 @@ class Controller:
         shm_fd = open(f"/dev/shm{shm_name}", "r+b")  # Open shared memory
         shm_map = mmap.mmap(shm_fd.fileno(), position_size, access=mmap.ACCESS_READ)
 
+        last_valid = time.time()
         while self.running_position_estimation:
             data = shm_map[:position_size]  # Read 28 bytes
             valid = struct.unpack("<4?", data[:4])[0]  # Extract the validity flag (1 byte)
 
+            if time.time() - last_valid > 2 and self.failsafe is False:
+                self.failsafe = True
+                self.logger.warning(f"Failsafe triggered due to lack of position estimation.")
             if valid:
+                last_valid = time.time()
                 x, y, z, roll, pitch, yaw = struct.unpack("<6f", data[4:28])
                 # x, y, z = struct.unpack("<3f", data[4:16])
                 x = truncate(x, 3)
@@ -1050,6 +1110,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("--test-motors", action="store_true", help="test motors and exit")
     arg_parser.add_argument("--reboot", action="store_true", help="reboot")
     arg_parser.add_argument("--led", action="store_true", help="turn on the leds")
+    arg_parser.add_argument("--led-brightness", type=float, default=1.0, help="change led brightness between 0 and 1")
     arg_parser.add_argument("--land", action="store_true", help="land and exit")
     arg_parser.add_argument("--status", action="store_true", help="show battery voltage and current")
     arg_parser.add_argument("--debug", action="store_true", help="show debug logs")
@@ -1074,7 +1135,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("--fig8", action="store_true", help="fly figure 8 pattern")
     args = arg_parser.parse_args()
 
-    log_level = logging.DEBUG if args.debug else logging.INFO
+    log_level = logging.DEBUG if args.debug or args.status else logging.INFO
     c = Controller(
         takeoff_altitude=args.takeoff_altitude,
         land_altitude=args.land_altitude,
@@ -1098,29 +1159,17 @@ if __name__ == "__main__":
     c.request_data()
 
     if args.status:
-        c.watch_battery()
+        c.watch_battery(independent=True)
         exit()
 
     if args.test_motors:
         c.test_motors()
         exit()
 
-    if args.vicon:
-        from vicon import ViconWrapper
-
-        vicon_thread = ViconWrapper(callback=c.send_vicon_position, log_level=log_level)
-        vicon_thread.start()
-
     if args.virtual_vicon:
         from vicon import VirtualViconWrapper
 
         vicon_thread = VirtualViconWrapper(callback=c.send_vicon_position, log_level=log_level)
-        vicon_thread.start()
-
-    if args.save_vicon:
-        from vicon import ViconWrapper
-
-        vicon_thread = ViconWrapper(log_level=log_level)
         vicon_thread.start()
 
     if args.localize:
@@ -1135,8 +1184,8 @@ if __name__ == "__main__":
             "/home/fls/fls-marker-localization/build/eye",
             "-t", str(30 + args.duration),
             "--config", "/home/fls/fls-marker-localization/build/camera_config.json",
-            "--brightness", "0.01",  # 0.5
-            "--contrast", "0.75",  # 2.5
+            "--brightness", "0.5",  # 0.5
+            "--contrast", "2.5",  # 0.75
             "--exposure", "500",
             "--fps", str(args.fps),
         ]
@@ -1150,6 +1199,15 @@ if __name__ == "__main__":
 
         time.sleep(2)
         localize_thread.start()
+
+    if args.vicon:
+        from vicon import ViconWrapper
+        vicon_thread = ViconWrapper(callback=c.send_vicon_position, log_level=log_level)
+        vicon_thread.start()
+    elif args.save_vicon:
+        from vicon import ViconWrapper
+        vicon_thread = ViconWrapper(log_level=log_level)
+        vicon_thread.start()
 
     if not c.set_mode('GUIDED'):
         pass
@@ -1165,7 +1223,7 @@ if __name__ == "__main__":
     if args.led:
         from led import MovingDotLED
 
-        led = MovingDotLED()
+        led = MovingDotLED(brightness=args.led_brightness)
         led.start()
 
     # time.sleep(10)
