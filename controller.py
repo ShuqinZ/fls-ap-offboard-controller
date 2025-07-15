@@ -155,6 +155,7 @@ class Controller:
         if not self.connected:
             self.logger.error("Not connected to vehicle")
             return False
+        self.logger.info(f"Flight mode: {self.master.flightmode}, armed: {self.master.motors_armed()}")
 
         msg = self.master.recv_match(type='STATUSTEXT', blocking=True, timeout=5)
         if msg:
