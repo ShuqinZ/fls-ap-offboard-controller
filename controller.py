@@ -151,9 +151,14 @@ class Controller:
 
     def arm_with_retry(self):
         """Arm the vehicle with retry"""
+
         if not self.connected:
             self.logger.error("Not connected to vehicle")
             return False
+
+        msg = self.master.recv_match(type='STATUSTEXT', blocking=True, timeout=5)
+        if msg:
+            self.logger.warning(f"MAVLink status: {msg.text}")
 
         self.logger.info("Arming motors")
 
@@ -1166,12 +1171,6 @@ if __name__ == "__main__":
         c.test_motors()
         exit()
 
-    if args.virtual_vicon:
-        from vicon import VirtualViconWrapper
-
-        vicon_thread = VirtualViconWrapper(callback=c.send_vicon_position, log_level=log_level)
-        vicon_thread.start()
-
     if args.localize:
         localize_thread = Thread(target=c.run_camera_localization)
         lat = 12345
@@ -1203,6 +1202,10 @@ if __name__ == "__main__":
     if args.vicon:
         from vicon import ViconWrapper
         vicon_thread = ViconWrapper(callback=c.send_vicon_position, log_level=log_level)
+        vicon_thread.start()
+    elif args.virtual_vicon:
+        from vicon import VirtualViconWrapper
+        vicon_thread = VirtualViconWrapper(callback=c.send_vicon_position, log_level=log_level)
         vicon_thread.start()
     elif args.save_vicon:
         from vicon import ViconWrapper
