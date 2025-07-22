@@ -144,6 +144,7 @@ class Controller:
                 else:
                     self.logger.error(f"Command {command} failed with result: {msg.result}")
                     self.logger.error(msg)
+                    self.get_statustext()
                     return False
 
         self.logger.error(f"No ACK received for command {command}")
@@ -560,19 +561,19 @@ class Controller:
         x0, y0, z0 = 0, 0, -self.takeoff_altitude
         y, x, z = start_position
         z = -self.takeoff_altitude - z
-        dx, dy, dz = x - x0, y - y0, z -z0
+        dx, dy, dz = x - x0, y - y0, z - z0
 
         # move to start point in 3 seconds
         for i in range(1, 31):
-            self.send_position_target(x0 + i * dx/30, y0 + i * dy/30, z0 + i * dz/30)
-            time.sleep(1/10)
+            self.send_position_target(x0 + i * dx / 30, y0 + i * dy / 30, z0 + i * dz / 30)
+            time.sleep(1 / 10)
 
         # stay at start point for 1 second
         for i in range(10):
             self.send_position_target(x, y, z)
-            time.sleep(1/10)
+            time.sleep(1 / 10)
 
-        for i in range(3):
+        for i in range(args.repeat_trajectory):
             for segment in segments:
                 positions = segment["position"]
                 velocities = segment["velocity"]
@@ -590,8 +591,8 @@ class Controller:
                     y, x, z = p
                     vy, vx, vz = v
                     # self.send_position_target(x, y, -self.takeoff_altitude-z)
-                    self.send_position_velocity_target(x, y, -self.takeoff_altitude-z, vx, vy, -vz)
-                    time.sleep(1/fps)
+                    self.send_position_velocity_target(x, y, -self.takeoff_altitude - z, vx, vy, -vz)
+                    time.sleep(1 / fps)
 
         led.clear()
 
@@ -747,32 +748,6 @@ class Controller:
         self.mission_items.append(MissionItem(1, 0, -35.363026, 149.165152, 1))
         self.mission_items.append(MissionItem(2, 0, 0, 0, 1))
 
-        # for i in range(point_count):
-        #     if args.sim:
-        #         _x = (z[i] - z[0]) * 2.5
-        #         _y = (x[i] - x[0]) * 2.5
-        #         _z = -self.takeoff_altitude
-        #     else:
-        #         _x = 0
-        #         _y = (x[i]) * 2.5 - x[0]
-        #         _z = - self.takeoff_altitude - (z[i] - z[0]) * 2.5
-        #
-        #     # _vx = 0
-        #     # _vy = vx[i] * 10
-        #     # _vz = vz[i] * 10
-        #     # _vx = (_x - __x) / dt
-        #     # _vy = (_y - __y) / dt
-        #     # _vz = (_z - __z) / dt
-        #
-        #     # __x = _x
-        #     # __y = _y
-        #     # __z = _z
-        #     # print(_x, _y, _z)
-        #     self.mission_items.append(MissionItem(i, 0, _x, _y, _z))
-        #     # self.send_position_velocity_target(_z, _y, -1, _vz, _vy, _vx)
-        #     # self.send_velocity_target(_vx, _vy, _vz)
-        #     time.sleep(dt)
-
         self.upload_mission(self.mission_items)
 
     def start_mission(self):
@@ -837,29 +812,47 @@ class Controller:
 
     def test_trajectory_3(self):
         waypoints = [
-            [0, 0, -self.takeoff_altitude],
-            [0, .2, -self.takeoff_altitude],
-            [0, 0, -self.takeoff_altitude]
-        ]
+                        [0, 0, -self.takeoff_altitude],
+                        [0, 0.2, -self.takeoff_altitude],
+                    ] * 5
+
+        waypoints_2 = [
+                          [0, 0, -self.takeoff_altitude],
+                          [0.2, 0, -self.takeoff_altitude],
+                      ] * 5
+
+        for i in range(20):
+            self.send_position_target(*waypoints[0])
+            time.sleep(1 / 10)
 
         for pos in waypoints:
-            for i in range(50):
+            for i in range(10):
+                self.send_position_target(*pos)
+                time.sleep(1 / 10)
+
+        for i in range(20):
+            self.send_position_target(*waypoints_2[0])
+            time.sleep(1 / 10)
+
+        for pos in waypoints_2:
+            for i in range(10):
                 self.send_position_target(*pos)
                 time.sleep(1 / 10)
 
     def test_trajectory_4(self):
+        max_v = 5
         waypoints = [
-                        [-10, 0, 0],
-                        [10, 0, 0],
-                        [10, 0, 0],
-                        [-10, 0, 0],
+                        [-max_v, 0, 0],
+                        [max_v, 0, 0],
+                        [max_v, 0, 0],
+                        [-max_v, 0, 0],
                     ] * 5
 
         waypoints_2 = [
-                          [0, 10, 0],
-                          [0, -10, 0],
-                          [0, -10, 0],
-                          [0, 10, 0],
+                          [0, max_v, 0],
+                          [0, -max_v, 0],
+                          [0, -max_v, 0],
+                          [0, max_v, 0],
                       ] * 5
 
         for ori in waypoints:
@@ -875,44 +868,6 @@ class Controller:
             for i in range(5):
                 self.send_attitude_target_deg(*ori)
                 time.sleep(1 / 20)
-        # angle = 10
-        # for j in range(5):
-        #     for i in range(angle + 1):
-        #         self.send_attitude_target_deg(i, 0, 0)
-        #         time.sleep(1 / 20)
-        #
-        #     for i in range(angle + 1):
-        #         self.send_attitude_target_deg(angle - i, 0, 0)
-        #         time.sleep(1 / 20)
-        #
-        #     for i in range(angle + 1):
-        #         self.send_attitude_target_deg(-i, 0, 0)
-        #         time.sleep(1 / 20)
-        #
-        #     for i in range(angle + 1):
-        #         self.send_attitude_target_deg(-angle + i, 0, 0)
-        #         time.sleep(1 / 20)
-        #
-        # for i in range(20):
-        #     self.send_attitude_target_deg(0, 0, 0)
-        #     time.sleep(1 / 20)
-        #
-        # for j in range(5):
-        #     for i in range(angle + 1):
-        #         self.send_attitude_target_deg(0, i, 0)
-        #         time.sleep(1 / 20)
-        #
-        #     for i in range(angle + 1):
-        #         self.send_attitude_target_deg(0, angle - i, 0)
-        #         time.sleep(1 / 20)
-        #
-        #     for i in range(angle + 1):
-        #         self.send_attitude_target_deg(0, -i, 0)
-        #         time.sleep(1 / 20)
-        #
-        #     for i in range(angle + 1):
-        #         self.send_attitude_target_deg(0, -angle + i, 0)
-        #         time.sleep(1 / 20)
 
     def test_s_trajectory(self):
         self.logger.info("Sending")
@@ -969,6 +924,64 @@ class Controller:
             0,  # rpy_rad[2],  # Yaw angle
             covariance,  # Row-major representation of pose 6x6 cross-covariance matrix
             reset_counter  # Estimate reset counter. Increment every time pose estimate jumps.
+        )
+
+    def send_velocity_estimate(self, vx, vy, vz, covariance=None):
+        if covariance is None:
+            covariance = [0.1, 0.0, 0.0,  # vx variance and covariances
+                          0.0, 0.1, 0.0,  # vy variance and covariances
+                          0.0, 0.0, 0.1]  # vz variance and covariances
+
+        self.master.mav.vision_speed_estimate_send(
+            int(time.time() * 1e6),  # timestamp in microseconds
+            vx, vy, vz,  # velocities in m/s
+            covariance,  # covariance matrix
+            0  # reset counter
+        )
+
+    def send_vision_odometry(self, x, y, z, vx, vy, vz, timestamp=None):
+        """
+        Send complete odometry data (position + velocity + orientation)
+        All velocities in m/s and rad/s
+        """
+        if timestamp is None:
+            timestamp = time.time()
+
+        # Default quaternion (no rotation) - w=1, x=y=z=0
+        qw, qx, qy, qz = 1.0, 0.0, 0.0, 0.0
+
+        # No angular velocities
+        vroll, vpitch, vyaw = 0.0, 0.0, 0.0
+
+        # Position covariance (6x6 matrix, but we send diagonal elements)
+        pose_covariance = [
+            0.1, 0, 0, 0, 0, 0,  # x - good estimate
+            0, 0.1, 0, 0, 0, 0,  # y - good estimate
+            0, 0, 0.1, 0, 0, 0,  # z - good estimate
+            0, 0, 0, 100.0, 0, 0,  # roll - high uncertainty (no data)
+            0, 0, 0, 0, 100.0, 0,  # pitch - high uncertainty (no data)
+            0, 0, 0, 0, 0, 100.0  # yaw - high uncertainty (no data)
+        ]
+
+        velocity_covariance = [
+            1.0, 0, 0, 0, 0, 0,  # vx - calculated, moderate uncertainty
+            0, 1.0, 0, 0, 0, 0,  # vy - calculated, moderate uncertainty
+            0, 0, 1.0, 0, 0, 0,  # vz - calculated, moderate uncertainty
+            0, 0, 0, 100.0, 0, 0,  # vroll - high uncertainty (no data)
+            0, 0, 0, 0, 100.0, 0,  # vpitch - high uncertainty (no data)
+            0, 0, 0, 0, 0, 100.0  # vyaw - high uncertainty (no data)
+        ]
+
+        self.master.mav.odometry_send(
+            int(timestamp * 1e6),  # timestamp
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED,  # frame_id
+            mavutil.mavlink.MAV_FRAME_LOCAL_NED,  # child_frame_id
+            x, y, z,  # position
+            [qw, qx, qy, qz],  # orientation quaternion
+            vx, vy, vz,  # linear velocity
+            vroll, vpitch, vyaw,  # angular velocity
+            pose_covariance,  # pose covariance
+            velocity_covariance  # velocity covariance
         )
 
     def run_camera_localization(self):
@@ -1046,8 +1059,10 @@ class Controller:
 
             time.sleep(1 / args.fps)
 
-    def send_vicon_position(self, x, y, z):
+    def send_vicon_position(self, x, y, z, vx, vy, vz):
         self.send_position_estimate(y / 1000, x / 1000, -z / 1000)
+        # self.send_velocity_estimate(vy / 1000, vx / 1000, -vz / 1000)
+        # self.send_vision_odometry(y / 1000, x / 1000, -z / 1000, vy / 1000, vx / 1000, -vz / 1000)
 
     def send_landing_target(self, angle_x, angle_y, distance, x=0, y=0, z=0):
         """
@@ -1069,8 +1084,7 @@ class Controller:
 
     def start_flight(self):
         battery_thread = Thread(target=self.watch_battery, daemon=True)
-
-        time.sleep(1)
+        time.sleep(3)
         c.takeoff()
         time.sleep(2)
 
@@ -1082,8 +1096,7 @@ class Controller:
             time.sleep(2)
             flight_thread = Thread(target=self.send_trajectory_from_file, args=(args.trajectory,))
         else:
-            time.sleep(2)
-            flight_thread = Thread(target=self.test_trajectory_3)
+            flight_thread = Thread(target=self.test_trajectory_3())
             # flight_thread = Thread(target=self.start_mission)
             # flight_thread = Thread(target=self.test_trajectory, args=(0, 0, 0))
             # flight_thread = Thread(target=self.test_s_trajectory)
@@ -1096,6 +1109,70 @@ class Controller:
         flight_thread.join()
         self.running_battery_watcher = False
         battery_thread.join()
+
+    def wait_param(self, name, timeout=5):
+        """Fetch a parameter and return its value."""
+        self.master.mav.param_request_read_send(self.master.target_system, self.master.target_component, name.encode(), -1)
+        start = time.time()
+        while time.time() - start < timeout:
+            msg = self.master.recv_match(type='PARAM_VALUE', blocking=True, timeout=1)
+            if msg and msg.param_id.strip('\x00') == name:
+                return msg.param_value
+        return None
+
+    def check_ekf_status(self):
+        """Check if EKF is healthy and has a valid position estimate."""
+        timeout = time.time() + 10
+        while time.time() < timeout:
+            msg = self.master.recv_match(type='EKF_STATUS_REPORT', blocking=True, timeout=1)
+            if not msg:
+                continue
+
+            flags = msg.flags
+            status = {
+                'attitude': bool(flags & (1 << 0)),
+                'velocity_horiz': bool(flags & (1 << 1)),
+                'velocity_vert': bool(flags & (1 << 2)),
+                'pos_horiz_abs': bool(flags & (1 << 3)),
+                'pos_horiz_rel': bool(flags & (1 << 4)),
+                'pos_vert_abs': bool(flags & (1 << 5)),
+                'pos_vert_rel': bool(flags & (1 << 6)),
+                'compass': bool(flags & (1 << 7)),
+                'terrain_alt': bool(flags & (1 << 8)),
+                'const_pos_mode': bool(flags & (1 << 9)),
+            }
+
+            self.logger.debug("EKF status report:")
+            for k, v in status.items():
+                self.logger.debug(f" - {k}: {'OK' if v else 'NOT OK'}")
+
+            if status['attitude'] and status['velocity_horiz'] and (status['pos_horiz_abs'] or status['pos_horiz_rel']):
+                self.logger.info("EKF is healthy and position estimate is OK.")
+                return True
+            else:
+                self.logger.warning("EKF is not ready for GUIDED takeoff.")
+                return False
+
+        self.logger.error("Timed out waiting for EKF status.")
+        return False
+
+    def get_statustext(self, timeout=5):
+        self.logger.info("Listening for STATUSTEXT messages...")
+        end = time.time() + timeout
+        while time.time() < end:
+            msg = self.master.recv_match(type='STATUSTEXT', blocking=True, timeout=1)
+            if msg:
+                self.logger.info(f"STATUSTEXT [{msg.severity}]: {msg.text}")
+
+    def check_preflight(self):
+        self.logger.info("Fetching current EKF sources...")
+        posxy_src = self.wait_param("EK3_SRC1_POSXY")
+        velxy_src = self.wait_param("EK3_SRC1_VELXY")
+        self.logger.info(f"EK3_SRC1_POSXY = {posxy_src}, EK3_SRC1_VELXY = {velxy_src}")
+
+        while not self.check_ekf_status():
+            self.logger.info("waiting for EK3 to converge...")
+            time.sleep(1)
 
     def stop(self):
         self.land()
@@ -1136,6 +1213,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("--voltage", type=float, default=7.4,
                             help="critical battery voltage threshold to land when reached")
     arg_parser.add_argument("--trajectory", type=str, help="path to trajectory file to follow")
+    arg_parser.add_argument("--repeat-trajectory", type=int, default=3, help="number of trajectory repetitions")
     arg_parser.add_argument("--mission", type=str, help="path to mission way points file")
     arg_parser.add_argument("--simple-takeoff", action="store_true", help="takeoff and land")
     arg_parser.add_argument("--fig8", action="store_true", help="fly figure 8 pattern")
@@ -1162,8 +1240,6 @@ if __name__ == "__main__":
         c.disarm()
         exit()
 
-    c.request_data()
-
     if args.status:
         c.watch_battery(independent=True)
         exit()
@@ -1171,6 +1247,8 @@ if __name__ == "__main__":
     if args.test_motors:
         c.test_motors()
         exit()
+
+    c.request_data()
 
     if args.localize:
         localize_thread = Thread(target=c.run_camera_localization)
@@ -1201,7 +1279,13 @@ if __name__ == "__main__":
         localize_thread.start()
 
     if args.vicon:
+        lat = 12345
+        lon = 12345
+        alt = 0
+        c.master.mav.set_gps_global_origin_send(1, lat, lon, alt)
+        c.master.mav.set_home_position_send(1, lat, lon, alt, 0, 0, 0, [1, 0, 0, 0], 0, 0, 1)
         from vicon import ViconWrapper
+
         vicon_thread = ViconWrapper(callback=c.send_vicon_position, log_level=log_level)
         vicon_thread.start()
     elif args.virtual_vicon:
@@ -1210,8 +1294,12 @@ if __name__ == "__main__":
         vicon_thread.start()
     elif args.save_vicon:
         from vicon import ViconWrapper
+
         vicon_thread = ViconWrapper(log_level=log_level)
         vicon_thread.start()
+
+
+    c.check_preflight()
 
     if not c.set_mode('GUIDED'):
         pass
