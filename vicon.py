@@ -137,11 +137,14 @@ class VirtualViconWrapper(threading.Thread):
         while self.running:
             frame_num += 1
             pos_x, pos_y, pos_z = 0, 0, 10
+            vel_x, vel_y, vel_z = 1, 1, 1
             self.position_log.append({
                 "frame_id": frame_num,
                 "tvec": [pos_x, pos_y, pos_z],
+                "vel": [vel_x, vel_y, vel_z],
                 "time": time.time() * 1000
             })
+
             if callable(self.callback):
                 self.callback(pos_x, pos_y, pos_z)
             self.logger.debug(
