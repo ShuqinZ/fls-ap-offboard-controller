@@ -146,7 +146,7 @@ class VirtualViconWrapper(threading.Thread):
             })
 
             if callable(self.callback):
-                self.callback(pos_x, pos_y, pos_z)
+                self.callback(pos_x, pos_y, pos_z, vel_x, vel_y, vel_z)
             self.logger.debug(
                 f"    Position (mm): X={pos_x:.2f}, Y={pos_y:.2f}, Z={pos_z:.2f}")
         else:
