@@ -1210,7 +1210,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("--fps", type=int, default=120, help="position estimation rate, works with --localize")
     arg_parser.add_argument("--takeoff-altitude", type=float, default=1.0, help="takeoff altitude in meter")
     arg_parser.add_argument("--land-altitude", type=float, default=1.0, help="landing altitude in meter")
-    arg_parser.add_argument("--voltage", type=float, default=7.4,
+    arg_parser.add_argument("--voltage", type=float, default=12.0,
                             help="critical battery voltage threshold to land when reached")
     arg_parser.add_argument("--trajectory", type=str, help="path to trajectory file to follow")
     arg_parser.add_argument("--repeat-trajectory", type=int, default=3, help="number of trajectory repetitions")
