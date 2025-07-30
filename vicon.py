@@ -98,7 +98,7 @@ class ViconWrapper(threading.Thread):
                             self.logger.warning(f"\tPosition (mm): Occluded or no data")
 
                 else:
-                    time.sleep(0.01)
+                    time.sleep(1/50)
 
         except KeyboardInterrupt:
             self.logger.error("\nScript interrupted by user.")
