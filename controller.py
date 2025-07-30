@@ -12,6 +12,7 @@ import numpy as np
 from pymavlink import mavutil
 
 from log import LoggerFactory
+from velocity_estimator import VelocityEstimator
 
 linear_accel_cov = 0.01
 angular_vel_cov = 0.01
@@ -80,6 +81,7 @@ class Controller:
         self.sim = sim
         self.initial_yaw = 0
         self.mission_items = []
+        self.velocity_estimator = VelocityEstimator()
 
     def connect(self):
         if self.sim:
@@ -916,9 +918,9 @@ class Controller:
 
         self.master.mav.vision_position_estimate_send(
             int((time.time()) * 1000000),
-            x,  # X y
-            y,  # Y -x
-            z,  # Z -z (down is negative)
+            x,  # X
+            y,  # Y
+            z,  # Z +z is down, -z is up
             0,  # rpy_rad[0],  # Roll angle
             0,  # rpy_rad[1],  # Pitch angle
             0,  # rpy_rad[2],  # Yaw angle
@@ -955,33 +957,48 @@ class Controller:
 
         # Position covariance (6x6 matrix, but we send diagonal elements)
         pose_covariance = [
-            0.1, 0, 0, 0, 0, 0,  # x - good estimate
-            0, 0.1, 0, 0, 0, 0,  # y - good estimate
-            0, 0, 0.1, 0, 0, 0,  # z - good estimate
-            0, 0, 0, 100.0, 0, 0,  # roll - high uncertainty (no data)
-            0, 0, 0, 0, 100.0, 0,  # pitch - high uncertainty (no data)
-            0, 0, 0, 0, 0, 100.0  # yaw - high uncertainty (no data)
+            0.001, 0, 0, 0, 0, 0,  # x - good estimate
+            0.001, 0, 0, 0, 0,  # y - good estimate
+            0.001, 0, 0, 0,  # z - good estimate
+            100.0, 0, 0,  # roll - high uncertainty (no data)
+            100.0, 0,  # pitch - high uncertainty (no data)
+            100.0  # yaw - high uncertainty (no data)
         ]
 
         velocity_covariance = [
-            1.0, 0, 0, 0, 0, 0,  # vx - calculated, moderate uncertainty
-            0, 1.0, 0, 0, 0, 0,  # vy - calculated, moderate uncertainty
-            0, 0, 1.0, 0, 0, 0,  # vz - calculated, moderate uncertainty
-            0, 0, 0, 100.0, 0, 0,  # vroll - high uncertainty (no data)
-            0, 0, 0, 0, 100.0, 0,  # vpitch - high uncertainty (no data)
-            0, 0, 0, 0, 0, 100.0  # vyaw - high uncertainty (no data)
+            0.1, 0, 0, 0, 0, 0,  # vx - calculated, moderate uncertainty
+            0.1, 0, 0, 0, 0,  # vy - calculated, moderate uncertainty
+            0.1, 0, 0, 0,  # vz - calculated, moderate uncertainty
+            100.0, 0, 0,  # vroll - high uncertainty (no data)
+            100.0, 0,  # vpitch - high uncertainty (no data)
+            100.0  # vyaw - high uncertainty (no data)
         ]
 
         self.master.mav.odometry_send(
             int(timestamp * 1e6),  # timestamp
-            mavutil.mavlink.MAV_FRAME_LOCAL_NED,  # frame_id
-            mavutil.mavlink.MAV_FRAME_LOCAL_NED,  # child_frame_id
+            mavutil.mavlink.MAV_FRAME_LOCAL_FRD,  # frame_id
+            mavutil.mavlink.MAV_FRAME_BODY_FRD,  # child_frame_id
             x, y, z,  # position
             [qw, qx, qy, qz],  # orientation quaternion
             vx, vy, vz,  # linear velocity
             vroll, vpitch, vyaw,  # angular velocity
             pose_covariance,  # pose covariance
             velocity_covariance  # velocity covariance
+        )
+
+    def send_distance_sensor(self, distance_cm):
+        self.master.mav.distance_sensor_send(
+            time_boot_ms=int(time.time() * 1000) % (2 ** 32),
+            min_distance=1,
+            max_distance=300,
+            current_distance=int(distance_cm),
+            type=mavutil.mavlink.MAV_DISTANCE_SENSOR_LASER,  # Laser type
+            id=0,
+            orientation=mavutil.mavlink.MAV_SENSOR_ROTATION_PITCH_270,  # Downward
+            covariance=1,
+            horizontal_fov=0,  # Unknown FOV
+            vertical_fov=0,  # Unknown FOV
+            quaternion=[1, 0, 0, 0]  # No rotation quaternion
         )
 
     def run_camera_localization(self):
@@ -1059,10 +1076,14 @@ class Controller:
 
             time.sleep(1 / args.fps)
 
-    def send_vicon_position(self, x, y, z, vx, vy, vz):
-        self.send_position_estimate(y / 1000, x / 1000, -z / 1000)
+    def send_vicon_position(self, x, y, z, timestamp):
+        vx, vy, vz = self.velocity_estimator.update(x, y, z, timestamp=timestamp)
+        # Positive z is down, negative z is up.
+        # Do not try to send positive z coordinates. Otherwise, the drone keeps ascending.
+        # self.send_position_estimate(y / 1000, x / 1000, -z / 1000)
         # self.send_velocity_estimate(vy / 1000, vx / 1000, -vz / 1000)
-        # self.send_vision_odometry(y / 1000, x / 1000, -z / 1000, vy / 1000, vx / 1000, -vz / 1000)
+        self.send_vision_odometry(y / 1000, x / 1000, -z / 1000, vy / 1000, vx / 1000, -vz / 1000)
+        self.send_distance_sensor(z / 10)
 
     def send_landing_target(self, angle_x, angle_y, distance, x=0, y=0, z=0):
         """
@@ -1112,7 +1133,8 @@ class Controller:
 
     def wait_param(self, name, timeout=5):
         """Fetch a parameter and return its value."""
-        self.master.mav.param_request_read_send(self.master.target_system, self.master.target_component, name.encode(), -1)
+        self.master.mav.param_request_read_send(self.master.target_system, self.master.target_component, name.encode(),
+                                                -1)
         start = time.time()
         while time.time() - start < timeout:
             msg = self.master.recv_match(type='PARAM_VALUE', blocking=True, timeout=1)
@@ -1248,8 +1270,6 @@ if __name__ == "__main__":
         c.test_motors()
         exit()
 
-    c.request_data()
-
     if args.localize:
         localize_thread = Thread(target=c.run_camera_localization)
         lat = 12345
@@ -1298,7 +1318,7 @@ if __name__ == "__main__":
         vicon_thread = ViconWrapper(log_level=log_level)
         vicon_thread.start()
 
-
+    c.request_data()
     c.check_preflight()
 
     if not c.set_mode('GUIDED'):
