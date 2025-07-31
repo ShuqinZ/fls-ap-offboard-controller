@@ -1144,6 +1144,7 @@ class Controller:
 
     def send_vicon_full(self, x, y, z, rll, pit, yaw, timestamp):
         vx, vy, vz = self.velocity_estimator.update(x, y, z, timestamp=timestamp)
+        pit, rll = 0, 0
         odometer_data = [y / 1000, x / 1000, -z / 1000, pit, rll, yaw, vy / 1000, vx / 1000, -vz / 1000, None, None, None]
         # self.logger.debug(f"Odometer_data: {odometer_data}")
         self.send_vision_odometry_full(odometer_data)
