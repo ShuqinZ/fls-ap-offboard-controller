@@ -986,6 +986,56 @@ class Controller:
             velocity_covariance  # velocity covariance
         )
 
+    def send_vision_odometry_full(self, odometer_data, timestamp=None):
+        """
+        Send complete odometry data (position + velocity + orientation)
+        All velocities in m/s and rad/s
+        """
+
+        pos_convariance = [0.001 if v is not None else 100 for v in odometer_data[:6]]
+        vel_convariance = [0.001 if v is not None else 100 for v in odometer_data[6:]]
+
+        x, y, z, rll, pit, yaw, vx, vy, vz, vroll, v_pitch, v_yaw = [v if v is not None else 0.0 for v in odometer_data]
+        if timestamp is None:
+            timestamp = time.time()
+
+        # Default quaternion (no rotation) - w=1, x=y=z=0
+        ori_quat = euler_to_quaternion(rll, pit, yaw)
+
+        # No angular velocities
+        # vroll, vpitch, vyaw = 0.0, 0.0, 0.0
+
+        # Position covariance (6x6 matrix, but we send diagonal elements)
+        pose_covariance = [
+            pos_convariance[0], 0, 0, 0, 0, 0,  # x - good estimate
+            pos_convariance[1], 0, 0, 0, 0,  # y - good estimate
+            pos_convariance[2], 0, 0, 0,  # z - good estimate
+            pos_convariance[3], 0, 0,  # roll - high uncertainty (no data)
+            pos_convariance[4], 0,  # pitch - high uncertainty (no data)
+            pos_convariance[5]  # yaw - high uncertainty (no data)
+        ]
+
+        velocity_covariance = [
+            vel_convariance[0], 0, 0, 0, 0, 0,  # vx - calculated, moderate uncertainty
+            vel_convariance[1], 0, 0, 0, 0,  # vy - calculated, moderate uncertainty
+            vel_convariance[2], 0, 0, 0,  # vz - calculated, moderate uncertainty
+            vel_convariance[3], 0, 0,  # vroll - high uncertainty (no data)
+            vel_convariance[4], 0,  # vpitch - high uncertainty (no data)
+            vel_convariance[5]  # vyaw - high uncertainty (no data)
+        ]
+
+        self.master.mav.odometry_send(
+            int(timestamp * 1e6),  # timestamp
+            mavutil.mavlink.MAV_FRAME_LOCAL_FRD,  # frame_id
+            mavutil.mavlink.MAV_FRAME_BODY_FRD,  # child_frame_id
+            x, y, z,  # position
+            ori_quat,  # orientation quaternion
+            vx, vy, vz,  # linear velocity
+            vroll, vpitch, vyaw,  # angular velocity
+            pose_covariance,  # pose covariance
+            velocity_covariance  # velocity covariance
+        )
+
     def send_distance_sensor(self, distance_cm):
         self.master.mav.distance_sensor_send(
             time_boot_ms=int(time.time() * 1000) % (2 ** 32),
@@ -1080,11 +1130,15 @@ class Controller:
         vx, vy, vz = self.velocity_estimator.update(x, y, z, timestamp=timestamp)
         # Positive z is down, negative z is up.
         # Do not try to send positive z coordinates. Otherwise, the drone keeps ascending.
-        self.send_position_estimate(y / 1000, x / 1000, -z / 1000)
+        # self.send_position_estimate(y / 1000, x / 1000, -z / 1000)
         # self.send_velocity_estimate(vy / 1000, vx / 1000, -vz / 1000)
-        # self.send_vision_odometry(y / 1000, x / 1000, -z / 1000, vy / 1000, vx / 1000, -vz / 1000)
-        # self.send_distance_sensor(z / 10)
+        self.send_vision_odometry(y / 1000, x / 1000, -z / 1000, vy / 1000, vx / 1000, -vz / 1000)
+        self.send_distance_sensor(z / 10)
 
+    def send_vicon_full(self, x, y, z, rll, pit, yaw, timestamp):
+        vx, vy, vz = self.velocity_estimator.update(x, y, z, timestamp=timestamp)
+        odometer_data = [y / 1000, x / 1000, -z / 1000, pit, rll, yaw, vy / 1000, vx / 1000, -vz / 1000, None, None, None]
+        self.send_vision_odometry_full(odometer_data)
     def send_landing_target(self, angle_x, angle_y, distance, x=0, y=0, z=0):
         """
         Sends a LANDING_TARGET MAVLink message to ArduPilot.
@@ -1306,11 +1360,12 @@ if __name__ == "__main__":
         c.master.mav.set_home_position_send(1, lat, lon, alt, 0, 0, 0, [1, 0, 0, 0], 0, 0, 1)
         from vicon import ViconWrapper
 
-        vicon_thread = ViconWrapper(callback=c.send_vicon_position, log_level=log_level)
+        # vicon_thread = ViconWrapper(callback=c.send_vicon_position, log_level=log_level)
+        vicon_thread = ViconWrapper(callback=c.send_vicon_full, log_level=log_level)
         vicon_thread.start()
     elif args.virtual_vicon:
         from vicon import VirtualViconWrapper
-        vicon_thread = VirtualViconWrapper(callback=c.send_vicon_position, log_level=log_level)
+        vicon_thread = VirtualViconWrapper(callback=c.send_vicon_full, log_level=log_level)
         vicon_thread.start()
     elif args.save_vicon:
         from vicon import ViconWrapper

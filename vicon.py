@@ -48,6 +48,9 @@ class ViconWrapper(threading.Thread):
             client.set_stream_mode(StreamMode.ClientPull)
             self.logger.info("Stream mode set to ClientPull.")
 
+            latency = client.get_latency_total()
+            self.logger.info(f"Vicon Latency: {latency}.")
+
             # Set axis mapping for standard coordinate systems
             client.set_axis_mapping(Direction.Forward, Direction.Left, Direction.Up)
 
@@ -65,6 +68,7 @@ class ViconWrapper(threading.Thread):
 
                     if object_count is not None and object_count == 1:
                         translation = None
+                        rotation = None
 
                         if self.labeled_object:
                             subject_name = client.get_subject_name(0)
@@ -72,6 +76,7 @@ class ViconWrapper(threading.Thread):
                                 self.logger.debug(f"\tSubject: {subject_name}")
                                 root_segment = client.get_subject_root_segment_name(subject_name)
                                 translation = client.get_segment_global_translation(subject_name, root_segment)
+                                rotation = client.get_segment_global_rotation_euler_xyz(subject_name, root_segment)
                         else:
                             translation = client.get_unlabeled_marker_global_translation(0)
 
@@ -84,7 +89,11 @@ class ViconWrapper(threading.Thread):
                                 "time": now * 1000
                             })
                             if callable(self.callback):
-                                self.callback(pos_x, pos_y, pos_z, timestamp=now)
+                                if rotation is not None:
+                                    data = [pos_x, pos_y, pos_z, rotation[0], rotation[1], rotation[2]]
+                                else:
+                                    data = [pos_x, pos_y, pos_z, None, None, None]
+                                self.callback(data, timestamp=now)
 
                             self.logger.debug(
                                 f"\tPosition (mm): X={pos_x:.2f}, Y={pos_y:.2f}, Z={pos_z:.2f}")
