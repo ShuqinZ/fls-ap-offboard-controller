@@ -48,12 +48,11 @@ class ViconWrapper(threading.Thread):
             client.set_stream_mode(StreamMode.ClientPull)
             self.logger.info("Stream mode set to ClientPull.")
 
-            latency = client.get_latency_total()
-            self.logger.info(f"Vicon Latency: {latency*1000} ms.")
-
             # Set axis mapping for standard coordinate systems
             client.set_axis_mapping(Direction.Forward, Direction.Left, Direction.Up)
 
+            # latency = client.get_latency_total()
+            # self.logger.info(f"Vicon Latency: {latency*1000} ms.")
             while self.running:
                 if client.get_frame():
                     frame_num = client.get_frame_number()
@@ -101,6 +100,8 @@ class ViconWrapper(threading.Thread):
                             self.logger.warning(f"\tPosition (mm): Occluded or no data")
 
                 else:
+                    latency = client.get_latency_total()
+                    self.logger.info(f"Vicon Latency: {latency*1000} ms.")
                     time.sleep(1/50)
 
         except KeyboardInterrupt:
