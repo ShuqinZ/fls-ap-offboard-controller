@@ -41,6 +41,10 @@ class ViconWrapper(threading.Thread):
                 client.enable_marker_data()
                 client.enable_segment_data()
                 self.logger.info("Marker and Segment data enabled.")
+
+                subject_name = client.get_subject_name(0)
+                if subject_name:
+                    self.logger.info(f"\tSubject: {subject_name}")
             else:
                 client.enable_unlabeled_marker_data()
                 self.logger.info("Unlabeled marker data enabled.")
