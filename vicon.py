@@ -89,7 +89,7 @@ class ViconWrapper(threading.Thread):
                             })
                             if callable(self.callback):
                                 if rotation is not None:
-                                    self.logger.info(f"Using Vicon For Attitude.")
+                                    # self.logger.info(f"Using Vicon For Attitude.")
                                     self.callback(pos_x, pos_y, pos_z, rotation[0], rotation[1], rotation[2], timestamp=now)
                                 else:
                                     self.callback(pos_x, pos_y, pos_z, timestamp=now)

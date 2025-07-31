@@ -1024,12 +1024,12 @@ class Controller:
             vel_convariance[5]  # vyaw - high uncertainty (no data)
         ]
 
-        self.logger.debug(
-            f"Odometer Data: Pos:[{x:.4f}, {y:.4f}, {z:.4f}], "
-            f"Quat:[{rll:.2f}, {pit:.2f}, {yaw:.2f}], "
-            f"Vel:[{vx:.1f}, {vy:.1f}, {vz:.1f}], "
-            f"RVel:[{vroll:.1f}, {v_pitch:.1f}, {v_yaw:.1f}]"
-        )
+        # self.logger.debug(
+        #     f"Odometer Data: Pos:[{x:.4f}, {y:.4f}, {z:.4f}], "
+        #     f"Quat:[{rll:.2f}, {pit:.2f}, {yaw:.2f}], "
+        #     f"Vel:[{vx:.1f}, {vy:.1f}, {vz:.1f}], "
+        #     f"RVel:[{vroll:.1f}, {v_pitch:.1f}, {v_yaw:.1f}]"
+        # )
 
         self.master.mav.odometry_send(
             int(timestamp * 1e6),  # timestamp
@@ -1145,7 +1145,7 @@ class Controller:
     def send_vicon_full(self, x, y, z, rll, pit, yaw, timestamp):
         vx, vy, vz = self.velocity_estimator.update(x, y, z, timestamp=timestamp)
         odometer_data = [y / 1000, x / 1000, -z / 1000, pit, rll, yaw, vy / 1000, vx / 1000, -vz / 1000, None, None, None]
-        self.logger.debug(f"Odometer_data: {odometer_data}")
+        # self.logger.debug(f"Odometer_data: {odometer_data}")
         self.send_vision_odometry_full(odometer_data)
         self.send_distance_sensor(z / 10)
     def send_landing_target(self, angle_x, angle_y, distance, x=0, y=0, z=0):
