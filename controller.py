@@ -1024,6 +1024,8 @@ class Controller:
             vel_convariance[5]  # vyaw - high uncertainty (no data)
         ]
 
+        self.logger.debug(f"Odometer Data: Pos:[{x, y, z,}], Quat:{ori_quat}, Vel:[{vx, vy, vz}]")
+
         self.master.mav.odometry_send(
             int(timestamp * 1e6),  # timestamp
             mavutil.mavlink.MAV_FRAME_LOCAL_FRD,  # frame_id
