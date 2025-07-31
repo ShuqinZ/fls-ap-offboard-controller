@@ -1139,6 +1139,7 @@ class Controller:
         vx, vy, vz = self.velocity_estimator.update(x, y, z, timestamp=timestamp)
         odometer_data = [y / 1000, x / 1000, -z / 1000, pit, rll, yaw, vy / 1000, vx / 1000, -vz / 1000, None, None, None]
         self.send_vision_odometry_full(odometer_data)
+        self.send_distance_sensor(z / 10)
     def send_landing_target(self, angle_x, angle_y, distance, x=0, y=0, z=0):
         """
         Sends a LANDING_TARGET MAVLink message to ArduPilot.
