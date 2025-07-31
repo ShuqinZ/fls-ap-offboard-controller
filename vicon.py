@@ -89,10 +89,9 @@ class ViconWrapper(threading.Thread):
                             })
                             if callable(self.callback):
                                 if rotation is not None:
-                                    data = [pos_x, pos_y, pos_z, rotation[0], rotation[1], rotation[2]]
+                                    self.callback(pos_x, pos_y, pos_z, rotation[0], rotation[1], rotation[2], timestamp=now)
                                 else:
-                                    data = [pos_x, pos_y, pos_z, None, None, None]
-                                self.callback(data, timestamp=now)
+                                    self.callback(pos_x, pos_y, pos_z, timestamp=now)
 
                             self.logger.debug(
                                 f"\tPosition (mm): X={pos_x:.2f}, Y={pos_y:.2f}, Z={pos_z:.2f}")
@@ -150,7 +149,7 @@ class VirtualViconWrapper(threading.Thread):
             })
 
             if callable(self.callback):
-                self.callback(pos_x, pos_y, pos_z, vel_x, vel_y, vel_z)
+                self.callback([pos_x, pos_y, pos_z, vel_x, vel_y, vel_z])
             self.logger.debug(
                 f"    Position (mm): X={pos_x:.2f}, Y={pos_y:.2f}, Z={pos_z:.2f}")
         else:
