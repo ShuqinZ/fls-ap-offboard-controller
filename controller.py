@@ -1003,7 +1003,7 @@ class Controller:
         ori_quat = euler_to_quaternion(rll, pit, yaw)
 
         # No angular velocities
-        # vroll, vpitch, vyaw = 0.0, 0.0, 0.0
+        vroll, vpitch, vyaw = 0.0, 0.0, 0.0
 
         # Position covariance (6x6 matrix, but we send diagonal elements)
         pose_covariance = [
@@ -1026,9 +1026,9 @@ class Controller:
 
         self.logger.debug(
             f"Odometer Data: Pos:[{x:.4f}, {y:.4f}, {z:.4f}], "
-            f"Quat:{ori_quat:.2f}, "
-            f"Vel:[{vx:.4f}, {vy:.4f}, {vz:.4f}], "
-            f"RVel:[{vroll:.4f}, {v_pitch:.4f}, {v_yaw:.4f}]"
+            f"Quat:[{rll:.2f}, {pit:.2f}, {yaw:.2f}], "
+            f"Vel:[{vx:.1f}, {vy:.1f}, {vz:.1f}], "
+            f"RVel:[{vroll:.1f}, {v_pitch:.1f}, {v_yaw:.1f}]"
         )
 
         self.master.mav.odometry_send(
