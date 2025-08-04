@@ -1199,7 +1199,7 @@ class Controller:
         pit, rll, yaw = None, None, None
         odometer_data = [y / 1000, x / 1000, -z / 1000, pit, rll, yaw, vy / 1000, vx / 1000, -vz / 1000, None, None, None]
         # self.logger.debug(f"Odometer_data: {odometer_data}")
-        latency = -1
+        latency = -1e6
         if self.check_ekf_status():
             latency = self.get_fc_latency()
 
