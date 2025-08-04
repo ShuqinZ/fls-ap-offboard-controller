@@ -100,8 +100,11 @@ class ViconWrapper(threading.Thread):
                                     fc_latency = self.callback(pos_x, pos_y, pos_z, timestamp=now)
 
                             if fc_latency > 0:
-                                vicon_latency = client.get_latency_total()
-                                self.logger.debug(f"System Latency: {fc_latency + vicon_latency * 1000} ms. FC Latency: {fc_latency}, Vicon Latency: {vicon_latency*1000}")
+                                try:
+                                    vicon_latency = client.get_latency_total()
+                                    self.logger.debug(f"System Latency: {fc_latency + vicon_latency * 1000} ms. FC Latency: {fc_latency}, Vicon Latency: {vicon_latency*1000}")
+                                except Exception as e:
+                                    self.logger.error(f"Latency Check error: {e}")
 
                             self.logger.debug(
                                 f"\tPosition (mm): X={pos_x:.2f}, Y={pos_y:.2f}, Z={pos_z:.2f}, "
