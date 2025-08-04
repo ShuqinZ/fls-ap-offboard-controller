@@ -1249,8 +1249,8 @@ class Controller:
             # flight_thread = Thread(target=self.test_trajectory, args=(0, 0, 0))
             # flight_thread = Thread(target=self.test_s_trajectory)
             # flight_thread = Thread(target=self.circular_trajectory)
-
-        self.running_battery_watcher = True
+        if not args.no_flight:
+            self.running_battery_watcher = True
         battery_thread.start()
         flight_thread.start()
 
