@@ -104,7 +104,8 @@ class ViconWrapper(threading.Thread):
                                 vicon_latency = client.get_latency_total()
                                 self.logger.debug(f"System Latency: {fc_latency + vicon_latency * 1000} ms. FC Latency: {fc_latency}, Vicon Latency: {vicon_latency*1000}")
                             self.logger.debug(
-                                f"\tPosition (mm): X={pos_x:.2f}, Y={pos_y:.2f}, Z={pos_z:.2f}")
+                                f"\tPosition (mm): X={pos_x:.2f}, Y={pos_y:.2f}, Z={pos_z:.2f}, "
+                                f"Roll:{rotation[0]}, Pitch:{rotation[1]}, Yaw{rotation[2]}")
                         else:
                             self.logger.warning(f"\tPosition (mm): Occluded or no data")
 
