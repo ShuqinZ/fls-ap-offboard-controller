@@ -29,15 +29,13 @@ class LoggerFactory:
     def __init__(self, name: str, level: int = logging.INFO, log_file=None):
         self.name = name
         self.level = level
-        self.logger = self._create_logger()
         self.log_file = log_file
+        self.logger = self._create_logger()
 
     def _create_logger(self):
         logger = logging.getLogger(self.name)
         logger.setLevel(self.level)
         logger.propagate = False
-
-
 
         if not logger.hasHandlers():
 
