@@ -1230,7 +1230,7 @@ class Controller:
         self.flight_start = True
         battery_thread = Thread(target=self.watch_battery, daemon=True)
         time.sleep(3)
-        if not args.trajectory:
+        if not args.no_flight:
             c.takeoff()
         time.sleep(2)
 
