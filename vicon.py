@@ -60,11 +60,11 @@ class ViconWrapper(threading.Thread):
             while self.running:
                 if client.get_frame():
                     frame_num = client.get_frame_number()
-                    self.logger.debug(f"--- Frame {frame_num} ---")
+                    # self.logger.debug(f"--- Frame {frame_num} ---")
 
                     if self.labeled_object:
                         object_count = client.get_subject_count()
-                        self.logger.debug(f"\tSubject count: {object_count}")
+                        # self.logger.debug(f"\tSubject count: {object_count}")
                     else:
                         object_count = client.get_unlabeled_marker_count()
                         self.logger.debug(f"\tUnlabeled marker count: {object_count}")

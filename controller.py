@@ -1202,7 +1202,7 @@ class Controller:
         odometer_data = [y / 1000, x / 1000, -z / 1000, pit, rll, yaw, vy / 1000, vx / 1000, -vz / 1000, None, None, None]
         # self.logger.debug(f"Odometer_data: {odometer_data}")
 
-        time_offset = get_offset()
+        time_offset = self.get_offset()
         pi_send_time = int(time.time() * 1e9)
         fc_receive_time = self.send_vision_odometry_full(odometer_data)
         latency = fc_receive_time - (pi_send_time + time_offset) # in ns
