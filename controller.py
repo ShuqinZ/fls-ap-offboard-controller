@@ -1182,7 +1182,7 @@ class Controller:
         response = wait_for_timesync_response()
         if response is None:
             self.logger.info("No TIMESYNC response")
-            return None
+            return -1
         t_receive = ns()
         # tc1 = response.tc1  # FC timestamp
         # ts1 = response.ts1  # Echoed Pi timestamp
