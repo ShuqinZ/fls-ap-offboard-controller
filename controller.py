@@ -1164,12 +1164,9 @@ class Controller:
         self.send_distance_sensor(z / 10)
 
 
-    def get_offset(self):
+    def get_fc_latency(self):
         def ns():
             return int(time.time() * 1e9)
-
-        def send_timesync_request(ts1):
-            self.master.mav.timesync_send(tc1=0, ts1=ts1)
 
         def wait_for_timesync_response(timeout=1.0):
             start = time.time()
@@ -1180,21 +1177,21 @@ class Controller:
             return None
 
         ts1_send = ns()
-        send_timesync_request(ts1_send)
+        self.master.mav.timesync_send(tc1=0, ts1=ts1_send)
         response = wait_for_timesync_response()
         if response is None:
-            print("No TIMESYNC response")
+            self.logger.info("No TIMESYNC response")
             return None
         t_receive = ns()
-        tc1 = response.tc1  # FC timestamp
-        ts1 = response.ts1  # Echoed Pi timestamp
+        # tc1 = response.tc1  # FC timestamp
+        # ts1 = response.ts1  # Echoed Pi timestamp
 
-        offset = ((tc1 + t_receive) - 2 * ts1) // 2
-        # rtt = t_receive - ts1_send
+        # offset = ((tc1 + t_receive) - 2 * ts1) // 2
+        rtt = t_receive - ts1_send
         #
         # print(f"Round-trip time: {rtt / 1e6:.2f} ms")
         # print(f"Estimated FC clock offset: {offset / 1e6:.2f} ms")
-        return offset
+        return rtt/2
 
     def send_vicon_full(self, x, y, z, rll, pit, yaw, timestamp):
         vx, vy, vz = self.velocity_estimator.update(x, y, z, timestamp=timestamp)
@@ -1202,10 +1199,7 @@ class Controller:
         odometer_data = [y / 1000, x / 1000, -z / 1000, pit, rll, yaw, vy / 1000, vx / 1000, -vz / 1000, None, None, None]
         # self.logger.debug(f"Odometer_data: {odometer_data}")
 
-        time_offset = self.get_offset()
-        pi_send_time = int(time.time() * 1e9)
-        fc_receive_time = self.send_vision_odometry_full(odometer_data)
-        latency = fc_receive_time - (pi_send_time + time_offset) # in ns
+        latency = self.get_fc_latency()
         self.send_distance_sensor(z / 10)
 
         return latency / 1e6
