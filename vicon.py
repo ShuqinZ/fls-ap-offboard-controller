@@ -91,14 +91,14 @@ class ViconWrapper(threading.Thread):
                                 "tvec": [pos_x, pos_y, pos_z],
                                 "time": now * 1000
                             })
-                            fc_latency = 0.0
+                            fc_latency = -1
                             if callable(self.callback):
                                 if rotation is not None:
                                     # self.logger.info(f"Using Vicon For Attitude.")
                                     fc_latency = self.callback(pos_x, pos_y, pos_z, rotation[0], rotation[1], rotation[2], timestamp=now)
                                 else:
                                     fc_latency = self.callback(pos_x, pos_y, pos_z, timestamp=now)
-                            # client.get_time_code()
+                            client.get_time_code()
 
                             if fc_latency > 0:
                                 vicon_latency = client.get_latency_total()
