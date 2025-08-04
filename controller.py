@@ -1230,7 +1230,8 @@ class Controller:
         self.flight_start = True
         battery_thread = Thread(target=self.watch_battery, daemon=True)
         time.sleep(3)
-        c.takeoff()
+        if not args.trajectory:
+            c.takeoff()
         time.sleep(2)
 
         if args.simple_takeoff:
@@ -1472,6 +1473,5 @@ if __name__ == "__main__":
         led.start()
 
     # time.sleep(10)
-    if not args.no_flight:
-        c.start_flight()
-        c.stop()
+    c.start_flight()
+    c.stop()
