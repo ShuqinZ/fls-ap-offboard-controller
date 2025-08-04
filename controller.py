@@ -65,6 +65,7 @@ class Controller:
                  sim=False,
                  device="/dev/ttyAMA0",
                  baudrate=115200):
+        self.flight_start = False
         self.device = device
         self.baudrate = baudrate
         self.master = None
@@ -1200,7 +1201,7 @@ class Controller:
         odometer_data = [y / 1000, x / 1000, -z / 1000, pit, rll, yaw, vy / 1000, vx / 1000, -vz / 1000, None, None, None]
         # self.logger.debug(f"Odometer_data: {odometer_data}")
         latency = -1e6
-        if self.check_ekf_status():
+        if self.flight_start:
             latency = self.get_fc_latency()
 
         self.send_vision_odometry_full(odometer_data)
@@ -1226,6 +1227,7 @@ class Controller:
         )
 
     def start_flight(self):
+        self.flight_start = True
         battery_thread = Thread(target=self.watch_battery, daemon=True)
         time.sleep(3)
         c.takeoff()
@@ -1322,6 +1324,7 @@ class Controller:
 
     def stop(self):
         self.land()
+        self.flight_start = False
 
         if args.led:
             led.stop()
