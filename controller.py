@@ -1042,7 +1042,12 @@ class Controller:
             pose_covariance,  # pose covariance
             velocity_covariance  # velocity covariance
         )
-
+        timestamp = 0
+        try:
+            timestamp = self.master.time_since('ODOMETRY')
+        except:
+            self.logger.debug('No ODOMETRY message received')
+        return timestamp
     def send_distance_sensor(self, distance_cm):
         self.master.mav.distance_sensor_send(
             time_boot_ms=int(time.time() * 1000) % (2 ** 32),
@@ -1058,6 +1063,11 @@ class Controller:
             quaternion=[1, 0, 0, 0]  # No rotation quaternion
         )
 
+    def send_time_sync(self):
+        self.master.mav.timesync_send(
+            tc1=0,
+            ts1=int(time.time() * 1e9)
+        )
     def run_camera_localization(self):
         position_size = 1 + 3 + 6 * 4  # 1 byte + 3 byte padding + 6 floats (4 bytes each)
         shm_name = "/pos_shared_mem"
@@ -1142,13 +1152,52 @@ class Controller:
         self.send_vision_odometry(y / 1000, x / 1000, -z / 1000, vy / 1000, vx / 1000, -vz / 1000)
         self.send_distance_sensor(z / 10)
 
+
+    def get_offset(self):
+        def ns():
+            return int(time.time() * 1e9)
+
+        def send_timesync_request(ts1):
+            self.master.mav.timesync_send(tc1=0, ts1=ts1)
+
+        def wait_for_timesync_response(timeout=1.0):
+            start = time.time()
+            while time.time() - start < timeout:
+                msg = self.master.recv_match(type='TIMESYNC', blocking=True, timeout=0.1)
+                if msg and msg.tc1 != 0:
+                    return msg
+            return None
+
+        ts1_send = ns()
+        send_timesync_request(ts1_send)
+        response = wait_for_timesync_response()
+        if response is None:
+            print("No TIMESYNC response")
+            return None
+        t_receive = ns()
+        tc1 = response.tc1  # FC timestamp
+        ts1 = response.ts1  # Echoed Pi timestamp
+
+        offset = ((tc1 + t_receive) - 2 * ts1) // 2
+        # rtt = t_receive - ts1_send
+        #
+        # print(f"Round-trip time: {rtt / 1e6:.2f} ms")
+        # print(f"Estimated FC clock offset: {offset / 1e6:.2f} ms")
+        return offset
+
     def send_vicon_full(self, x, y, z, rll, pit, yaw, timestamp):
         vx, vy, vz = self.velocity_estimator.update(x, y, z, timestamp=timestamp)
         pit, rll, yaw = None, None, None
         odometer_data = [y / 1000, x / 1000, -z / 1000, pit, rll, yaw, vy / 1000, vx / 1000, -vz / 1000, None, None, None]
         # self.logger.debug(f"Odometer_data: {odometer_data}")
-        self.send_vision_odometry_full(odometer_data)
+
+        time_offset = get_offset()
+        pi_send_time = int(time.time() * 1e9)
+        fc_receive_time = self.send_vision_odometry_full(odometer_data)
+        latency = fc_receive_time - (pi_send_time + time_offset) # in ns
         self.send_distance_sensor(z / 10)
+
+        return latency / 1e6
     def send_landing_target(self, angle_x, angle_y, distance, x=0, y=0, z=0):
         """
         Sends a LANDING_TARGET MAVLink message to ArduPilot.

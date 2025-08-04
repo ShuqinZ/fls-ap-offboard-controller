@@ -94,18 +94,18 @@ class ViconWrapper(threading.Thread):
                             if callable(self.callback):
                                 if rotation is not None:
                                     # self.logger.info(f"Using Vicon For Attitude.")
-                                    self.callback(pos_x, pos_y, pos_z, rotation[0], rotation[1], rotation[2], timestamp=now)
+                                    fc_latency = self.callback(pos_x, pos_y, pos_z, rotation[0], rotation[1], rotation[2], timestamp=now)
+                                    vicon_latency = client.get_latency_total()
+                                    self.logger.info(f"System Latency: {fc_latency + vicon_latency * 1000} ms.")
                                 else:
                                     self.callback(pos_x, pos_y, pos_z, timestamp=now)
-
+                            client.get_time_code()
                             self.logger.debug(
                                 f"\tPosition (mm): X={pos_x:.2f}, Y={pos_y:.2f}, Z={pos_z:.2f}")
                         else:
                             self.logger.warning(f"\tPosition (mm): Occluded or no data")
 
                 else:
-                    latency = client.get_latency_total()
-                    self.logger.info(f"Vicon Latency: {latency*1000} ms.")
                     time.sleep(1/50)
 
         except KeyboardInterrupt:
