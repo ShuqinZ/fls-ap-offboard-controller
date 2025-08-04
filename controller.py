@@ -61,13 +61,14 @@ class MissionItem:
 
 class Controller:
     def __init__(self, flight_duration, voltage_threshold, takeoff_altitude, land_altitude, log_level=logging.INFO,
+                 log_file=None,
                  sim=False,
                  device="/dev/ttyAMA0",
                  baudrate=115200):
         self.device = device
         self.baudrate = baudrate
         self.master = None
-        self.logger = LoggerFactory("Controller", level=log_level).get_logger()
+        self.logger = LoggerFactory("Controller", level=log_level, log_file=log_file).get_logger()
         self.is_armed = False
         self.connected = False
         self.flight_duration = flight_duration
@@ -1360,6 +1361,8 @@ if __name__ == "__main__":
     arg_parser.add_argument("--simple-takeoff", action="store_true", help="takeoff and land")
     arg_parser.add_argument("--no-flight", action="store_true", help="test without flight")
     arg_parser.add_argument("--fig8", action="store_true", help="fly figure 8 pattern")
+    arg_parser.add_argument("--log-file", type=str, default=None,
+                            help="path to output file of console logging")
     args = arg_parser.parse_args()
 
     log_level = logging.DEBUG if args.debug or args.status else logging.INFO
@@ -1370,6 +1373,7 @@ if __name__ == "__main__":
         log_level=log_level,
         flight_duration=args.duration,
         voltage_threshold=args.voltage,
+        log_file=args.log_file
     )
     c.connect()
 
@@ -1428,7 +1432,8 @@ if __name__ == "__main__":
         from vicon import ViconWrapper
 
         # vicon_thread = ViconWrapper(callback=c.send_vicon_position, log_level=log_level)
-        vicon_thread = ViconWrapper(callback=c.send_vicon_full, log_level=log_level, labeled_object=True)
+        vicon_thread = ViconWrapper(callback=c.send_vicon_full, log_level=log_level, labeled_object=True,
+                                    log_file=args.log_file)
         vicon_thread.start()
     elif args.virtual_vicon:
         from vicon import VirtualViconWrapper
@@ -1437,7 +1442,7 @@ if __name__ == "__main__":
     elif args.save_vicon:
         from vicon import ViconWrapper
 
-        vicon_thread = ViconWrapper(log_level=log_level)
+        vicon_thread = ViconWrapper(log_level=log_level, log_file=args.log_file)
         vicon_thread.start()
 
     c.request_data()

@@ -26,21 +26,31 @@ class LevelFormatter(logging.Formatter):
 
 
 class LoggerFactory:
-    def __init__(self, name: str, level: int = logging.INFO):
+    def __init__(self, name: str, level: int = logging.INFO, log_file=None):
         self.name = name
         self.level = level
         self.logger = self._create_logger()
+        self.log_file = log_file
 
     def _create_logger(self):
         logger = logging.getLogger(self.name)
         logger.setLevel(self.level)
         logger.propagate = False
 
+
+
         if not logger.hasHandlers():
+
             handler = logging.StreamHandler()
             handler.setLevel(self.level)
             handler.setFormatter(LevelFormatter())
             logger.addHandler(handler)
+
+            if self.log_file is not None:
+                fh = logging.FileHandler(self.log_file, mode='w')
+                fh.setLevel(self.level)
+                fh.setFormatter(LevelFormatter())
+                logger.addHandler(fh)
 
         return logger
 

@@ -14,10 +14,10 @@ VICON_ADDRESS = f"{VICON_PC_IP}:801"
 
 
 class ViconWrapper(threading.Thread):
-    def __init__(self, callback=None, log_level=logging.INFO, labeled_object=False):
+    def __init__(self, callback=None, log_level=logging.INFO, labeled_object=False, log_file=None):
         super().__init__()
         self.running = False
-        self.logger = LoggerFactory("Vicon", level=log_level).get_logger()
+        self.logger = LoggerFactory("Vicon", level=log_level, log_file=log_file).get_logger()
         self.callback = callback
         self.position_log = []
         self.labeled_object = labeled_object
