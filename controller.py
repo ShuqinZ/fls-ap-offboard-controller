@@ -787,6 +787,17 @@ class Controller:
                 path.append((pos.tolist(), velocity.tolist()))
         return path
 
+    def no_flight(self, x=0, y=0, z=0):
+        points = [(x, y, -self.takeoff_altitude - z)]
+
+        for j in range(1):
+            for point in points:
+                for i in range(int(self.flight_duration * 10)):
+                    if self.failsafe:
+                        return
+                    # self.send_position_target(point[0], point[1], point[2])
+                    time.sleep(1 / 10)
+
     def test_trajectory(self, x=0, y=0, z=0):
         points = [(x, y, -self.takeoff_altitude - z)]
 
@@ -1229,6 +1240,8 @@ class Controller:
         elif args.trajectory:
             time.sleep(2)
             flight_thread = Thread(target=self.send_trajectory_from_file, args=(args.trajectory,))
+        elif args.no_flight:
+            flight_thread = Thread(target=self.no_flight)
         else:
             flight_thread = Thread(target=self.test_trajectory_3())
             # flight_thread = Thread(target=self.start_mission)
@@ -1351,6 +1364,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("--repeat-trajectory", type=int, default=3, help="number of trajectory repetitions")
     arg_parser.add_argument("--mission", type=str, help="path to mission way points file")
     arg_parser.add_argument("--simple-takeoff", action="store_true", help="takeoff and land")
+    arg_parser.add_argument("--no-flight", action="store_true", help="test without flight")
     arg_parser.add_argument("--fig8", action="store_true", help="fly figure 8 pattern")
     args = arg_parser.parse_args()
 
