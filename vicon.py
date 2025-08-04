@@ -98,7 +98,7 @@ class ViconWrapper(threading.Thread):
                                     fc_latency = self.callback(pos_x, pos_y, pos_z, rotation[0], rotation[1], rotation[2], timestamp=now)
                                 else:
                                     fc_latency = self.callback(pos_x, pos_y, pos_z, timestamp=now)
-                            client.get_time_code()
+                            # client.get_time_code()
 
                             if fc_latency > 0:
                                 vicon_latency = client.get_latency_total()
