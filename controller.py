@@ -1181,7 +1181,7 @@ class Controller:
         self.master.mav.timesync_send(tc1=0, ts1=ts1_send)
         response = wait_for_timesync_response()
         if response is None:
-            self.logger.info("No TIMESYNC response")
+            self.logger.debug("No TIMESYNC response")
             return -1
         t_receive = ns()
         # tc1 = response.tc1  # FC timestamp
