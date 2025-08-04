@@ -1203,6 +1203,7 @@ class Controller:
         if self.check_ekf_status():
             latency = self.get_fc_latency()
 
+        self.send_vision_odometry_full(odometer_data)
         self.send_distance_sensor(z / 10)
 
         return latency / 1e6
