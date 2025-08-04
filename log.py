@@ -46,7 +46,7 @@ class LoggerFactory:
 
             if self.log_file is not None:
                 fh = logging.FileHandler(self.log_file, mode='w')
-                fh.setLevel(self.level)
+                fh.setLevel(logging.DEBUG)
                 fh.setFormatter(LevelFormatter())
                 logger.addHandler(fh)
                 logger.info(f"Outputting log to file: {self.log_file}")
