@@ -51,6 +51,7 @@ class LoggerFactory:
                 fh.setLevel(self.level)
                 fh.setFormatter(LevelFormatter())
                 logger.addHandler(fh)
+                logger.info(f"Outputting log to file: {self.log_file}")
 
         return logger
 
