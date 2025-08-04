@@ -1469,5 +1469,6 @@ if __name__ == "__main__":
         led.start()
 
     # time.sleep(10)
-    c.start_flight()
-    c.stop()
+    if not args.no_flight:
+        c.start_flight()
+        c.stop()
