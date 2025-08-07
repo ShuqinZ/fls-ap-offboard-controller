@@ -1005,7 +1005,7 @@ class Controller:
         All velocities in m/s and rad/s
         """
 
-        pos_convariance = [0.001 if v is not None else 100 for v in odometer_data[:6]]
+        pos_convariance = [0.001 if p is not None else 100 for p in odometer_data[:6]]
         vel_convariance = [0.001 if v is not None else 100 for v in odometer_data[6:]]
 
         x, y, z, rll, pit, yaw, vx, vy, vz, vroll, v_pitch, v_yaw = [v if v is not None else 0.0 for v in odometer_data]
@@ -1201,8 +1201,8 @@ class Controller:
         odometer_data = [y / 1000, x / 1000, -z / 1000, pit, rll, yaw, vy / 1000, vx / 1000, -vz / 1000, None, None, None]
         # self.logger.debug(f"Odometer_data: {odometer_data}")
         latency = -1e6
-        if self.flight_start:
-            latency = self.get_fc_latency()
+        # if self.flight_start:
+        #     latency = self.get_fc_latency()
 
         self.send_vision_odometry_full(odometer_data)
         self.send_distance_sensor(z / 10)

@@ -1,4 +1,6 @@
 git pymavlink==2.4.43
 pyserial==3.5
-pandas
+pandas~=2.3.1
 pyvicon_datastream
+pymavlink~=2.4.49
+numpy~=2.0.2
