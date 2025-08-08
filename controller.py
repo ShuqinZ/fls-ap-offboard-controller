@@ -1005,8 +1005,8 @@ class Controller:
         All velocities in m/s and rad/s
         """
 
-        pos_convariance = [0.001 if p is not None else 100 for p in odometer_data[:6]]
-        vel_convariance = [0.001 if v is not None else 100 for v in odometer_data[6:]]
+        pos_convariance = [0.01 if p is not None else 100 for p in odometer_data[:6]]
+        vel_convariance = [0.05 if v is not None else 100 for v in odometer_data[6:]]
 
         x, y, z, rll, pit, yaw, vx, vy, vz, vroll, v_pitch, v_yaw = [v if v is not None else 0.0 for v in odometer_data]
         if timestamp is None:
@@ -1204,8 +1204,9 @@ class Controller:
         # if self.flight_start:
         #     latency = self.get_fc_latency()
 
-        self.send_vision_odometry_full(odometer_data)
-        self.send_distance_sensor(z / 10)
+        self.send_position_estimate(y / 1000, x / 1000, -z / 1000)
+        # self.send_vision_odometry_full(odometer_data)
+        # self.send_distance_sensor(z / 10)
 
         return latency / 1e6
     def send_landing_target(self, angle_x, angle_y, distance, x=0, y=0, z=0):
