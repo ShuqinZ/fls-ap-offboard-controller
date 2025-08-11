@@ -828,12 +828,12 @@ class Controller:
     def test_trajectory_3(self):
         waypoints = [
                         [0, 0, -self.takeoff_altitude],
-                        [0, 0.2, -self.takeoff_altitude],
+                        [0, 0.5, -self.takeoff_altitude],
                     ] * 5
 
         waypoints_2 = [
                           [0, 0, -self.takeoff_altitude],
-                          [0.2, 0, -self.takeoff_altitude],
+                          [0.5, 0, -self.takeoff_altitude],
                       ] * 5
 
         for i in range(20):
@@ -841,7 +841,7 @@ class Controller:
             time.sleep(1 / 10)
 
         for pos in waypoints:
-            for i in range(10):
+            for i in range(20):
                 self.send_position_target(*pos)
                 time.sleep(1 / 10)
 
@@ -850,7 +850,7 @@ class Controller:
             time.sleep(1 / 10)
 
         for pos in waypoints_2:
-            for i in range(10):
+            for i in range(20):
                 self.send_position_target(*pos)
                 time.sleep(1 / 10)
 
