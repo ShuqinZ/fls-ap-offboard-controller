@@ -841,7 +841,7 @@ class Controller:
             time.sleep(1 / 10)
 
         for pos in waypoints:
-            for i in range(10):
+            for i in range(20):
                 self.send_position_target(*pos)
                 time.sleep(1 / 10)
 
@@ -850,7 +850,7 @@ class Controller:
             time.sleep(1 / 10)
 
         for pos in waypoints_2:
-            for i in range(10):
+            for i in range(20):
                 self.send_position_target(*pos)
                 time.sleep(1 / 10)
 
