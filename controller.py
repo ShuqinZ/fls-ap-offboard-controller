@@ -1440,7 +1440,7 @@ if __name__ == "__main__":
         from vicon import ViconWrapper
 
         # vicon_thread = ViconWrapper(callback=c.send_vicon_position, log_level=log_level)
-        vicon_thread = ViconWrapper(callback=c.send_vicon_full, log_level=log_level, labeled_object=True,
+        vicon_thread = ViconWrapper(callback=c.send_vicon_full, log_level=log_level, labeled_object=False,
                                     log_file=args.log_file)
         vicon_thread.start()
     elif args.virtual_vicon:
